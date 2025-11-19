@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco de Preguntas: Programación 3° Medio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        
+        .card {
+            transition: all 0.3s ease;
+        }
+        
+        .option-btn {
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background-color: #e5e7eb;
+            transform: translateX(5px);
+        }
+
+        .correct-answer {
+            background-color: #d1fae5 !important;
+            border-color: #10b981 !important;
+            color: #065f46 !important;
+        }
+
+        .wrong-answer {
+            background-color: #fee2e2 !important;
+            border-color: #ef4444 !important;
+            color: #991b1b !important;
+        }
+
+        /* Animación suave */
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold"><i class="fas fa-code mr-2"></i>Prog-Master 3° Medio</h1>
+                <p class="text-xs text-indigo-200 hidden sm:block">Banco de Preguntas EMTP</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div id="score-display" class="hidden bg-indigo-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    Puntos: <span id="current-score">0</span>
+                </div>
+                <button onclick="resetQuiz()" class="text-sm bg-indigo-500 hover:bg-indigo-700 px-3 py-1 rounded transition">
+                    <i class="fas fa-redo"></i> Reiniciar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 flex-grow max-w-3xl">
+        
+        <!-- Intro / Config -->
+        <div id="intro-screen" class="card bg-white p-8 rounded-xl shadow-md text-center fade-in">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">Bienvenido al Examen</h2>
+            <p class="text-gray-600 mb-8">Pon a prueba tus conocimientos sobre Algoritmos, Python, Hardware, Sistemas Operativos y más.</p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 text-left">
+                <div class="p-4 border rounded-lg hover:border-indigo-500 cursor-pointer transition bg-gray-50" onclick="startQuiz('all')">
+                    <div class="flex items-center mb-2">
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-3">
+                            <i class="fas fa-random"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800">Modo Aleatorio</h3>
+                    </div>
+                    <p class="text-sm text-gray-500">Preguntas mezcladas de todos los módulos.</p>
+                </div>
+                
+                <div class="p-4 border rounded-lg hover:border-green-500 cursor-pointer transition bg-gray-50" onclick="startQuiz('algoritmos')">
+                    <div class="flex items-center mb-2">
+                        <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800">Solo Algoritmos</h3>
+                    </div>
+                    <p class="text-sm text-gray-500">Diagramas de flujo, PseInt y Lógica.</p>
+                </div>
+
+                <div class="p-4 border rounded-lg hover:border-blue-500 cursor-pointer transition bg-gray-50" onclick="startQuiz('python')">
+                    <div class="flex items-center mb-2">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3">
+                            <i class="fab fa-python"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800">Solo Python</h3>
+                    </div>
+                    <p class="text-sm text-gray-500">Sintaxis, variables y estructuras.</p>
+                </div>
+
+                <div class="p-4 border rounded-lg hover:border-red-500 cursor-pointer transition bg-gray-50" onclick="startQuiz('hardware')">
+                    <div class="flex items-center mb-2">
+                        <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mr-3">
+                            <i class="fas fa-microchip"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800">Hardware y S.O.</h3>
+                    </div>
+                    <p class="text-sm text-gray-500">Componentes, redes y sistemas.</p>
+                </div>
+            </div>
+            
+            <div class="text-sm text-gray-400">Base de datos cargada con <span id="total-questions-count">0</span> preguntas.</div>
+        </div>
+
+        <!-- Question Card -->
+        <div id="quiz-screen" class="hidden fade-in">
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+            
+            <div class="flex justify-between text-sm text-gray-500 mb-2">
+                <span id="question-counter">Pregunta 1 de 10</span>
+                <span id="category-badge" class="bg-gray-200 px-2 py-0.5 rounded text-xs uppercase font-bold tracking-wide text-gray-700">General</span>
+            </div>
+
+            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-6">
+                <h3 id="question-text" class="text-xl font-semibold text-gray-800 mb-6 leading-relaxed">
+                    <!-- Pregunta aquí -->
+                </h3>
+                
+                <!-- Case Study Box (Optional) -->
+                <div id="case-study-box" class="hidden bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-gray-700 text-sm italic rounded-r">
+                    <!-- Texto del caso -->
+                </div>
+
+                <div id="options-container" class="space-y-3">
+                    <!-- Opciones generadas por JS -->
+                </div>
+            </div>
+
+            <!-- Feedback Area -->
+            <div id="feedback-area" class="hidden p-4 mb-6 rounded-lg border">
+                <div class="flex items-start">
+                    <i id="feedback-icon" class="fas fa-check-circle text-2xl mr-3 mt-1"></i>
+                    <div>
+                        <h4 id="feedback-title" class="font-bold text-lg">¡Correcto!</h4>
+                        <p id="feedback-text" class="text-sm mt-1 text-gray-700"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="flex justify-end">
+                <button id="next-btn" onclick="nextQuestion()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow transition transform hover:scale-105">
+                    Siguiente <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="results-screen" class="hidden text-center fade-in">
+            <div class="bg-white p-8 rounded-xl shadow-md">
+                <div class="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl text-indigo-600">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">¡Examen Finalizado!</h2>
+                <p class="text-gray-500 mb-6">Aquí está el resumen de tu desempeño.</p>
+                
+                <div class="flex justify-center space-x-8 mb-8">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-indigo-600" id="final-score">0</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Puntaje</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600" id="final-correct">0</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Correctas</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-red-500" id="final-incorrect">0</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Incorrectas</div>
+                    </div>
+                </div>
+
+                <div class="border-t pt-6">
+                    <button onclick="location.reload()" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-8 rounded-lg shadow transition">
+                        Volver al Inicio
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm">
+        <p>Desarrollado para 3° Medio EMTP - Especialidad de Programación</p>
+    </footer>
+
+    <!-- DATA & LOGIC -->
+    <script>
+        // BANCO DE PREGUNTAS COMPLETO (150 PREGUNTAS)
+        // Categorias: algoritmos, python, hardware, so, soporte, gestion, web, bd, emprendimiento
+        const questionBank = [
+            // --- 1. ALGORITMOS Y LÓGICA (1-30) ---
+            {id:1, category:"algoritmos", type:"multiple", question:"¿Cuál es la definición más precisa de un algoritmo?", options:["Un lenguaje de programación específico.","Un conjunto de instrucciones ordenadas, finitas y no ambiguas.","Un componente físico del computador.","Un error lógico en un programa."], correct:1, explanation:"Un algoritmo es una serie de pasos lógicos definidos para realizar una tarea, independiente del lenguaje."},
+            {id:2, category:"algoritmos", type:"multiple", question:"En un diagrama de flujo, ¿qué representa el símbolo de un rectángulo?", options:["Inicio/Fin","Decisión","Entrada/Salida","Proceso"], correct:3, explanation:"El rectángulo estándar simboliza una operación, cálculo o asignación."},
+            {id:3, category:"algoritmos", type:"multiple", question:"¿Qué es una variable?", options:["Un valor constante.","Una instrucción de impresión.","Un espacio en memoria para datos que pueden cambiar.","El nombre del programa."], correct:2, explanation:"Las variables actúan como contenedores cuyo contenido puede variar durante la ejecución."},
+            {id:4, category:"algoritmos", type:"multiple", question:"Tipo de dato para números enteros en programación:", options:["Float","Int","String","Boolean"], correct:1, explanation:"'Int' (Integer) se utiliza para representar números enteros sin decimales."},
+            {id:5, category:"algoritmos", type:"multiple", question:"La estructura Si-Entonces-Sino (If-Else) sirve para:", options:["Repetir código.","Tomar decisiones (bifurcación).","Almacenar datos.","Detener el programa."], correct:1, explanation:"Permite ejecutar diferentes bloques de código dependiendo de si una condición es verdadera o falsa."},
+            {id:11, category:"algoritmos", type:"multiple", question:"Un arreglo (Array) permite:", options:["Guardar un solo dato.","Almacenar una colección de elementos del mismo tipo.","Ejecutar sumas.","Tomar decisiones."], correct:1, explanation:"Los arreglos son estructuras para almacenar múltiples valores bajo un mismo nombre."},
+            {id:12, category:"algoritmos", type:"multiple", question:"El operador lógico AND devuelve verdadero si:", options:["Al menos una es verdadera.","Todas son verdaderas.","Ninguna es verdadera.","Solo la primera es verdadera."], correct:1, explanation:"La lógica AND requiere que todas las condiciones evaluadas sean True."},
+            {id:13, category:"algoritmos", type:"multiple", question:"El ciclo MIENTRAS (While) se ejecuta:", options:["Un número fijo de veces.","Mientras la condición sea verdadera.","Solo una vez.","Nunca."], correct:1, explanation:"While evalúa la condición al inicio y repite el ciclo mientras esta se mantenga verdadera."},
+            {id:17, category:"algoritmos", type:"multiple", question:"Estructura de datos tipo PILA (Stack):", options:["LIFO (Last In First Out)","FIFO (First In First Out)","Aleatorio","Estática"], correct:0, explanation:"En una pila, el último elemento en entrar es el primero en salir (como una pila de platos)."},
+            {id:41, category:"algoritmos", type:"case", case:"Imprenta: Los trabajos se imprimen en el estricto orden de llegada.", question:"¿Qué estructura es mejor?", options:["Pila","Variable","Cola (Queue)","Arreglo"], correct:2, explanation:"El orden de llegada (FIFO) corresponde a una Cola."},
+            {id:42, category:"algoritmos", type:"multiple", question:"¿Qué es un diagrama de flujo?", options:["Un código fuente.","Una representación gráfica de un algoritmo.","Un error de sintaxis.","Un tipo de variable."], correct:1, explanation:"Es la representación visual de los pasos lógicos de un algoritmo."},
+            {id:43, category:"algoritmos", type:"multiple", question:"Símbolo de Rombo en diagramas de flujo:", options:["Proceso","Inicio","Decisión","Salida"], correct:2, explanation:"El rombo se utiliza para evaluar una condición (Si/No, Verdadero/Falso)."},
+            {id:44, category:"algoritmos", type:"multiple", question:"¿Qué es un bucle infinito?", options:["Un ciclo que nunca termina.","Un ciclo que se repite 10 veces.","Una variable grande.","Un error de compilación."], correct:0, explanation:"Ocurre cuando la condición de salida del ciclo nunca se cumple."},
+            {id:45, category:"algoritmos", type:"multiple", question:"Operador para obtener el resto de una división:", options:["/","*","%","^"], correct:2, explanation:"El operador módulo (%) devuelve el residuo de la división entera."},
+            {id:46, category:"algoritmos", type:"tf", question:"Un algoritmo debe ser finito.", options:["Verdadero","Falso"], correct:0, explanation:"Todo algoritmo debe tener un inicio y un final claro."},
+            {id:47, category:"algoritmos", type:"case", case:"Necesitas contar del 1 al 100.", question:"¿Qué estructura usas?", options:["If-Else","Switch","Ciclo Para (For)","Variable"], correct:2, explanation:"El ciclo Para (For) es ideal cuando se conoce el número exacto de iteraciones."},
+            {id:48, category:"algoritmos", type:"multiple", question:"¿Qué es 'Pseudocódigo'?", options:["Lenguaje máquina.","Lenguaje natural estructurado para diseñar algoritmos.","Un virus.","Un componente de hardware."], correct:1, explanation:"Es una forma de escribir algoritmos para que sean leídos por humanos, no máquinas."},
+            {id:49, category:"algoritmos", type:"multiple", question:"Valor de verdad de: (5 > 3) AND (2 < 4)", options:["Verdadero","Falso","Nulo","Error"], correct:0, explanation:"Ambas condiciones son verdaderas, por lo tanto el resultado AND es verdadero."},
+            {id:50, category:"algoritmos", type:"multiple", question:"Valor de verdad de: (5 < 3) OR (2 < 4)", options:["Verdadero","Falso","Nulo","Error"], correct:0, explanation:"Con OR, basta que una condición (2 < 4) sea verdadera."},
+            {id:51, category:"algoritmos", type:"multiple", question:"¿Qué es un acumulador?", options:["Variable que cuenta eventos.","Variable que suma valores variables.","Una constante.","Un array."], correct:1, explanation:"El acumulador (suma = suma + valor) sirve para guardar totales progresivos."},
+            {id:52, category:"algoritmos", type:"multiple", question:"¿Qué es un contador?", options:["Variable que incrementa en valor fijo.","Variable que multiplica.","Una base de datos.","Un error."], correct:0, explanation:"El contador (c = c + 1) sirve para llevar la cuenta de sucesos."},
+            {id:53, category:"algoritmos", type:"case", case:"Calculadora: Debes realizar una operación distinta según si el usuario elige 1, 2, 3 o 4.", question:"Mejor estructura:", options:["Muchos If","Ciclo While","Estructura Según (Switch/Case)","Array"], correct:2, explanation:"Switch/Case es más ordenado para menús de múltiples opciones fijas."},
+            {id:54, category:"algoritmos", type:"multiple", question:"¿Qué significa concatenar?", options:["Sumar números.","Unir cadenas de texto.","Dividir textos.","Borrar variables."], correct:1, explanation:"Concatenar es pegar dos strings uno tras otro (ej: 'Hola' + ' ' + 'Mundo')."},
+            {id:55, category:"algoritmos", type:"multiple", question:"La asignación de valor se representa comúnmente con:", options:["==","=","=>","?"], correct:1, explanation:"El signo = (o <- en pseint) asigna el valor de la derecha a la variable de la izquierda."},
+            {id:56, category:"algoritmos", type:"multiple", question:"¿Qué es una constante?", options:["Dato que cambia.","Dato que no cambia durante la ejecución.","Un bucle.","Una función."], correct:1, explanation:"Las constantes mantienen su valor fijo desde que se definen hasta que termina el programa."},
+
+            // --- 2. PYTHON (30-60) ---
+            {id:30, category:"python", type:"multiple", question:"Comentario de una línea en Python:", options:["//","/*","#","<!--"], correct:2, explanation:"Python usa el símbolo # para comentarios."},
+            {id:31, category:"python", type:"multiple", question:"Función para mostrar datos en pantalla:", options:["input()","show()","print()","echo"], correct:2, explanation:"print() es la función estándar de salida en Python."},
+            {id:32, category:"python", type:"multiple", question:"Función para leer datos del teclado:", options:["read()","input()","scan()","get()"], correct:1, explanation:"input() detiene el programa y captura lo que el usuario escribe."},
+            {id:33, category:"python", type:"multiple", question:"¿Cómo se define una función?", options:["func","def","function","define"], correct:1, explanation:"Se usa la palabra reservada 'def' seguida del nombre."},
+            {id:34, category:"python", type:"multiple", question:"Estructura de una lista:", options:["()","{}","[]","<>"], correct:2, explanation:"Las listas en Python se definen con corchetes []."},
+            {id:35, category:"python", type:"multiple", question:"Método para agregar elemento al final de una lista:", options:[".add()",".push()",".append()",".insert()"], correct:2, explanation:".append() añade el elemento al final."},
+            {id:36, category:"python", type:"multiple", question:"Indentación en Python:", options:["Es estética.","Define bloques de código.","No importa.","Es opcional."], correct:1, explanation:"Python usa la indentación (sangría) obligatoria para definir qué código va dentro de qué estructura."},
+            {id:37, category:"python", type:"multiple", question:"Operador de igualdad:", options:["=","==",":=","==="], correct:1, explanation:"== compara si dos valores son iguales. = es asignación."},
+            {id:38, category:"python", type:"multiple", question:"¿Qué tipo de dato es 'Hola'?", options:["int","float","str (string)","bool"], correct:2, explanation:"Es una cadena de caracteres (string)."},
+            {id:39, category:"python", type:"multiple", question:"Resultado de: 3 ** 2", options:["6","9","5","1"], correct:1, explanation:"** es el operador de potencia. 3 elevado a 2 es 9."},
+            {id:57, category:"python", type:"multiple", question:"Librería para gráficos matemáticos:", options:["os","sys","matplotlib","json"], correct:2, explanation:"Matplotlib es la librería estándar para gráficos."},
+            {id:58, category:"python", type:"multiple", question:"Librería para cálculos numéricos y matrices:", options:["numpy","requests","flask","django"], correct:0, explanation:"NumPy es fundamental para computación científica."},
+            {id:59, category:"python", type:"multiple", question:"¿Qué hace len(lista)?", options:["Borra la lista.","Devuelve el largo de la lista.","Ordena la lista.","Imprime la lista."], correct:1, explanation:"len() devuelve la cantidad de elementos."},
+            {id:60, category:"python", type:"multiple", question:"Bucle que recorre una secuencia:", options:["while","for","do-while","repeat"], correct:1, explanation:"El ciclo 'for' en Python itera sobre secuencias (listas, rangos, strings)."},
+            {id:61, category:"python", type:"case", case:"Código: if x > 10: print('A') else: print('B'). Si x=5, ¿qué imprime?", question:"Resultado:", options:["A","B","Error","Nada"], correct:1, explanation:"5 no es mayor que 10, así que se ejecuta el bloque else (B)."},
+            {id:62, category:"python", type:"multiple", question:"Palabra clave para importar librerías:", options:["include","using","import","require"], correct:2, explanation:"Se usa 'import nombre_libreria'."},
+            {id:63, category:"python", type:"multiple", question:"Tipo de dato de: True", options:["str","int","bool","float"], correct:2, explanation:"True y False son valores Booleanos."},
+            {id:64, category:"python", type:"multiple", question:"¿Qué es un diccionario?", options:["Colección ordenada.","Colección de pares clave-valor.","Una lista fija.","Un texto."], correct:1, explanation:"Los diccionarios {} almacenan datos asociados a una clave única."},
+            {id:65, category:"python", type:"multiple", question:"Convertir texto '5' a número entero:", options:["str()","int()","float()","list()"], correct:1, explanation:"int('5') convierte la cadena en el número 5."},
+            {id:66, category:"python", type:"multiple", question:"Operador 'distinto de':", options:["<>","!=","=/=","not="], correct:1, explanation:"!= verifica si dos valores son diferentes."},
+            {id:67, category:"python", type:"multiple", question:"¿Qué es una tupla?", options:["Lista modificable.","Lista inmutable (no modificable).","Un diccionario.","Un error."], correct:1, explanation:"Las tuplas () no pueden cambiar sus elementos una vez creadas."},
+            {id:68, category:"python", type:"multiple", question:"Sentencia para salir de un bucle inmediatamente:", options:["exit","stop","break","continue"], correct:2, explanation:"break termina el ciclo actual."},
+            {id:69, category:"python", type:"multiple", question:"Sentencia para saltar a la siguiente iteración:", options:["skip","pass","continue","next"], correct:2, explanation:"continue salta el resto del código y vuelve al inicio del ciclo."},
+            {id:70, category:"python", type:"multiple", question:"¿Qué hace la función range(5)?", options:["Genera [1,2,3,4,5]","Genera [0,1,2,3,4]","Genera 5 números aleatorios.","Error."], correct:1, explanation:"range(n) genera desde 0 hasta n-1."},
+            
+            // --- 3. HARDWARE Y SOPORTE (61-90) ---
+            {id:6, category:"hardware", type:"multiple", question:"Memoria principal de acceso aleatorio:", options:["CPU","HDD","RAM","Placa Madre"], correct:2, explanation:"RAM es donde se cargan los programas en ejecución."},
+            {id:8, category:"hardware", type:"multiple", question:"Función del BIOS/UEFI:", options:["Antivirus","Interfaz usuario","Test inicial y arranque (POST).","Conexión WiFi"], correct:2, explanation:"Es el firmware que inicia el hardware antes de cargar el SO."},
+            {id:9, category:"hardware", type:"multiple", question:"Mantenimiento preventivo:", options:["Reparar fallas.","Prevenir fallas (limpieza, etc).","Instalar juegos.","Formatear."], correct:1, explanation:"Busca evitar problemas futuros mediante limpieza y revisión."},
+            {id:14, category:"hardware", type:"multiple", question:"Periférico de salida:", options:["Teclado","Mouse","Escáner","Monitor"], correct:3, explanation:"El monitor muestra información al usuario (salida)."},
+            {id:15, category:"hardware", type:"multiple", question:"CPU significa:", options:["Central Program Unit","Unidad Central de Procesamiento","Computer Personal Unit","Control Power Unit"], correct:1, explanation:"Es el cerebro del computador."},
+            {id:71, category:"hardware", type:"multiple", question:"Dispositivo de almacenamiento permanente más rápido:", options:["HDD","SSD (Estado Sólido)","CD-ROM","Disquete"], correct:1, explanation:"Los SSD son mucho más rápidos que los discos mecánicos HDD."},
+            {id:72, category:"hardware", type:"multiple", question:"Componente que procesa gráficos:", options:["CPU","GPU (Tarjeta de Video)","RAM","PSU"], correct:1, explanation:"La GPU está especializada en procesamiento de imágenes y video."},
+            {id:73, category:"hardware", type:"multiple", question:"Fuente de Poder (PSU) función:", options:["Procesar datos.","Transformar corriente alterna a continua.","Almacenar datos.","Conectar a internet."], correct:1, explanation:"Energiza los componentes internos del PC."},
+            {id:74, category:"hardware", type:"multiple", question:"Placa Madre (Motherboard):", options:["Pantalla.","Tarjeta principal que conecta todo.","Teclado.","Disco."], correct:1, explanation:"Es el circuito principal donde se conectan CPU, RAM, discos, etc."},
+            {id:75, category:"hardware", type:"multiple", question:"Puerto HDMI transmite:", options:["Solo video.","Solo audio.","Audio y Video HD.","Internet."], correct:2, explanation:"HDMI es el estándar para audio y video digital de alta definición."},
+            {id:76, category:"hardware", type:"multiple", question:"Unidad mínima de información:", options:["Byte","Bit","Mega","Hertz"], correct:1, explanation:"El Bit (0 o 1) es lo mínimo."},
+            {id:77, category:"hardware", type:"multiple", question:"¿Cuántos bits hay en un Byte?", options:["10","8","100","1024"], correct:1, explanation:"8 bits forman 1 Byte."},
+            {id:78, category:"hardware", type:"case", case:"El PC se apaga repentinamente al jugar.", question:"Causa probable:", options:["Virus","Sobrecalentamiento o Fuente de poder insuficiente.","Teclado sucio.","Monitor apagado."], correct:1, explanation:"El calor excesivo o falta de energía son causas comunes de apagones súbitos."},
+            {id:79, category:"hardware", type:"multiple", question:"Pasta térmica se aplica:", options:["En la RAM.","Entre CPU y Disipador.","En el disco duro.","En los cables."], correct:1, explanation:"Ayuda a transferir el calor del procesador al ventilador/disipador."},
+            {id:80, category:"soporte", type:"multiple", question:"¿Qué es un Driver (Controlador)?", options:["Un chofer.","Software que comunica el SO con el hardware.","Un virus.","Un juego."], correct:1, explanation:"Sin drivers, el sistema operativo no sabe cómo usar el hardware."},
+            {id:81, category:"soporte", type:"multiple", question:"Herramienta para limpiar archivos basura en Windows:", options:["Liberador de espacio.","Paint.","Word.","Excel."], correct:0, explanation:"Herramienta nativa para borrar temporales y caché."},
+            {id:82, category:"soporte", type:"multiple", question:"Primer paso al diagnosticar un PC que no prende:", options:["Cambiar placa.","Verificar cables de energía.","Formatear.","Cambiar pantalla."], correct:1, explanation:"Siempre se empieza por lo más básico: la energía."},
+            {id:83, category:"soporte", type:"multiple", question:"¿Qué es un Ticket de soporte?", options:["Una multa.","Un registro formal de una incidencia.","Un recibo de compra.","Un virus."], correct:1, explanation:"Es el medio para rastrear y gestionar solicitudes de ayuda técnica."},
+            {id:84, category:"hardware", type:"multiple", question:"Periférico de Entrada:", options:["Monitor","Impresora","Micrófono","Parlantes"], correct:2, explanation:"El micrófono captura audio del exterior hacia el PC."},
+            {id:85, category:"hardware", type:"multiple", question:"Conector RJ45 se usa para:", options:["Video","Audio","Red (Ethernet)","Impresora"], correct:2, explanation:"Es el conector estándar para cables de red."},
+            {id:86, category:"hardware", type:"multiple", question:"Sistema de refrigeración líquida:", options:["Usa aire.","Usa líquido refrigerante.","Usa aceite.","Usa hielo."], correct:1, explanation:"Es más eficiente que el aire para equipos de alto rendimiento."},
+            {id:87, category:"hardware", type:"multiple", question:"¿Qué es el Overclocking?", options:["Aumentar la velocidad de reloj de un componente.","Poner hora al reloj.","Apagar el PC.","Limpiar el PC."], correct:0, explanation:"Fuerza al componente a trabajar más rápido, generando más calor."},
+            {id:88, category:"soporte", type:"multiple", question:"Pantallazo azul (BSOD) indica:", options:["Todo está bien.","Error crítico del sistema.","Falta de tinta.","Internet lento."], correct:1, explanation:"Windows muestra esto cuando ocurre un error del cual no puede recuperarse."},
+            {id:89, category:"soporte", type:"multiple", question:"Modo seguro de Windows:", options:["Para jugar.","Carga drivers mínimos para diagnóstico.","Para ver películas.","No existe."], correct:1, explanation:"Se usa para reparar problemas cargando solo lo esencial."},
+            {id:90, category:"soporte", type:"multiple", question:"Backup significa:", options:["Ir atrás.","Copia de seguridad de datos.","Bajar volumen.","Apagar."], correct:1, explanation:"Es vital para no perder información ante fallas."},
+
+            // --- 4. SISTEMAS OPERATIVOS (91-110) ---
+            {id:7, category:"so", type:"multiple", question:"S.O. es software de:", options:["Aplicación","Sistema","Desarrollo","Juego"], correct:1, explanation:"Es la base del funcionamiento del PC."},
+            {id:16, category:"so", type:"multiple", question:"Comando 'cd' en consola:", options:["Crear","Copiar","Cambiar Directorio","Borrar"], correct:2, explanation:"Change Directory."},
+            {id:20, category:"so", type:"multiple", question:"Virtualización es:", options:["Crear versión virtual de un recurso (ej: otro SO).","Jugar VR.","Usar lentes.","Navegar."], correct:0, explanation:"Permite correr múltiples sistemas en una máquina física."},
+            {id:91, category:"so", type:"multiple", question:"Linux es:", options:["Privativo","Open Source (Código Abierto)","De pago","Solo para hackers"], correct:1, explanation:"Su código es libre y modificable."},
+            {id:92, category:"so", type:"multiple", question:"Windows es:", options:["Open Source","Software Privativo/Propietario","Gratis","Linux"], correct:1, explanation:"Pertenece a Microsoft y su código es cerrado."},
+            {id:93, category:"so", type:"multiple", question:"Sistema de archivos de Windows:", options:["EXT4","NTFS","HFS","SWAP"], correct:1, explanation:"NTFS es el estándar actual de Windows."},
+            {id:94, category:"so", type:"multiple", question:"Comando para listar archivos en Linux:", options:["dir","ls","list","show"], correct:1, explanation:"'ls' lista el contenido del directorio."},
+            {id:95, category:"so", type:"multiple", question:"Comando para listar archivos en Windows (CMD):", options:["ls","dir","list","show"], correct:1, explanation:"'dir' muestra el directorio."},
+            {id:96, category:"so", type:"multiple", question:"¿Qué es el Kernel?", options:["Un programa de dibujo.","El núcleo del Sistema Operativo.","Un antivirus.","Una marca."], correct:1, explanation:"Es la parte central que gestiona hardware y software."},
+            {id:97, category:"so", type:"multiple", question:"Android está basado en:", options:["Windows","Linux","iOS","DOS"], correct:1, explanation:"Android utiliza el kernel de Linux."},
+            {id:98, category:"so", type:"multiple", question:"Permiso 'root' o 'administrador':", options:["Acceso limitado.","Acceso total al sistema.","Usuario invitado.","Sin internet."], correct:1, explanation:"Permite modificar cualquier aspecto del sistema."},
+            {id:99, category:"so", type:"multiple", question:"Interfaz GUI significa:", options:["Interfaz Gráfica de Usuario.","Interfaz de Texto.","Consola.","General Unit."], correct:0, explanation:"Usa ventanas, iconos y mouse (ej: Windows)."},
+            {id:100, category:"so", type:"multiple", question:"Interfaz CLI significa:", options:["Gráfica.","Línea de Comandos.","Click Interface.","Color Interface."], correct:1, explanation:"Usa solo texto y comandos (ej: Terminal)."},
+            {id:101, category:"so", type:"multiple", question:"Gestor de arranque (Bootloader):", options:["Carga el SO.","Apaga el PC.","Limpia virus.","Instala juegos."], correct:0, explanation:"Es el primer programa que corre para cargar el SO (ej: GRUB)."},
+            {id:102, category:"so", type:"multiple", question:"Partición de disco:", options:["Romper el disco.","División lógica del disco duro.","Un virus.","Carpeta."], correct:1, explanation:"Permite tratar un disco físico como varios discos lógicos."},
+            {id:103, category:"so", type:"multiple", question:"Extensión .exe en Windows:", options:["Texto","Imagen","Ejecutable","Música"], correct:2, explanation:"Indica un programa o aplicación."},
+            {id:104, category:"so", type:"multiple", question:"Comando 'mkdir':", options:["Borrar","Mover","Hacer directorio (Crear carpeta).","Copiar."], correct:2, explanation:"Make Directory."},
+            {id:105, category:"so", type:"multiple", question:"Multitarea:", options:["Una tarea a la vez.","Muchas tareas simultáneas.","Muchas pantallas.","Muchos teclados."], correct:1, explanation:"Capacidad del SO de ejecutar varios procesos a la vez."},
+            
+            // --- 5. REDES Y CONECTIVIDAD (111-125) ---
+            {id:111, category:"redes", type:"multiple", question:"Dirección IP:", options:["Dirección física.","Identificador lógico en la red.","Marca del PC.","Clave de WiFi."], correct:1, explanation:"Es como el número de teléfono del PC en la red."},
+            {id:112, category:"redes", type:"multiple", question:"Dirección MAC:", options:["Dirección física única de la tarjeta de red.","IP.","Nombre de usuario.","Apple."], correct:0, explanation:"Es un identificador único de fábrica."},
+            {id:113, category:"redes", type:"multiple", question:"DNS sirve para:", options:["Dar energía.","Traducir nombres de dominio a IP.","Hacer cables.","Proteger virus."], correct:1, explanation:"Convierte 'google.com' en su IP numérica."},
+            {id:114, category:"redes", type:"multiple", question:"DHCP:", options:["Asigna IPs automáticamente.","Borra archivos.","Crea webs.","Navegador."], correct:0, explanation:"Protocolo de configuración dinámica de host."},
+            {id:115, category:"redes", type:"multiple", question:"Comando 'ping':", options:["Jugar.","Verificar conectividad con otro equipo.","Abrir navegador.","Apagar red."], correct:1, explanation:"Envía paquetes para ver si el otro responde."},
+            {id:116, category:"redes", type:"multiple", question:"WiFi es:", options:["Cableado.","Inalámbrico.","Satélite.","Fibra."], correct:1, explanation:"Conexión Wireless Fidelity."},
+            {id:117, category:"redes", type:"multiple", question:"Fibra Óptica transmite:", options:["Electricidad.","Luz.","Sonido.","Agua."], correct:1, explanation:"Usa pulsos de luz, es muy rápida."},
+            {id:118, category:"redes", type:"multiple", question:"LAN significa:", options:["Long Area Network","Local Area Network","Live Area.","Line Art."], correct:1, explanation:"Red de Área Local (ej: casa, colegio)."},
+            {id:119, category:"redes", type:"multiple", question:"WAN significa:", options:["Wide Area Network","World Area.","Web Area.","Wifi Area."], correct:0, explanation:"Red de Área Amplia (ej: Internet)."},
+            {id:120, category:"redes", type:"multiple", question:"Router:", options:["Imprime.","Encamina el tráfico de red.","Almacena archivos.","Reproduce música."], correct:1, explanation:"Conecta redes y dirige los datos."},
+            {id:121, category:"redes", type:"multiple", question:"Switch:", options:["Apaga la luz.","Conecta dispositivos en una misma red LAN.","Cambia canales.","Es un servidor."], correct:1, explanation:"Distribuye datos a los dispositivos específicos en una LAN."},
+            {id:122, category:"redes", type:"multiple", question:"Protocolo HTTP:", options:["Transferencia de archivos.","Transferencia de hipertexto (Web).","Correo.","Chat."], correct:1, explanation:"Es la base de la Web."},
+            {id:123, category:"redes", type:"multiple", question:"Protocolo HTTPS:", options:["HTTP Seguro.","HTTP Simple.","HTTP System.","HTTP Speed."], correct:0, explanation:"Versión encriptada y segura de HTTP."},
+            {id:124, category:"redes", type:"multiple", question:"Firewall (Cortafuegos):", options:["Apaga incendios.","Filtra tráfico de red por seguridad.","Acelera internet.","Crea virus."], correct:1, explanation:"Bloquea accesos no autorizados."},
+            {id:125, category:"redes", type:"multiple", question:"Topología de red:", options:["Mapa físico/lógico de la red.","Marca de cables.","Velocidad.","Antivirus."], correct:0, explanation:"Ej: Estrella, Bus, Anillo."},
+
+            // --- 6. WEB Y BASE DE DATOS (126-140) ---
+            {id:126, category:"web", type:"multiple", question:"HTML es:", options:["Lenguaje de programación.","Lenguaje de marcado para estructura web.","Base de datos.","Editor de fotos."], correct:1, explanation:"Define la estructura (títulos, párrafos) de la web."},
+            {id:127, category:"web", type:"multiple", question:"CSS sirve para:", options:["Lógica.","Estilos y diseño visual.","Bases de datos.","Servidores."], correct:1, explanation:"Define colores, fuentes y diseño."},
+            {id:128, category:"web", type:"multiple", question:"Etiqueta para enlace:", options:["<link>","<a>","<href>","<url>"], correct:1, explanation:"<a href='...'> define un hipervínculo."},
+            {id:129, category:"web", type:"multiple", question:"SQL es:", options:["Lenguaje para bases de datos.","Juego.","Sistema Operativo.","Editor."], correct:0, explanation:"Structured Query Language."},
+            {id:130, category:"bd", type:"multiple", question:"Comando para obtener datos:", options:["GET","SELECT","FETCH","TAKE"], correct:1, explanation:"SELECT * FROM tabla..."},
+            {id:131, category:"bd", type:"multiple", question:"Primary Key (Clave Primaria):", options:["Cualquier campo.","Identificador único de registro.","Clave de acceso.","Nombre."], correct:1, explanation:"No se puede repetir en la tabla."},
+            {id:132, category:"web", type:"multiple", question:"JavaScript es:", options:["Java.","Lenguaje para interactividad web.","Base de datos.","HTML."], correct:1, explanation:"Corre en el navegador para dar dinamismo."},
+            {id:133, category:"web", type:"multiple", question:"Etiqueta para imagen:", options:["<img>","<pic>","<image>","<src>"], correct:0, explanation:"<img src='...'>."},
+            {id:134, category:"bd", type:"multiple", question:"Comando para borrar datos:", options:["REMOVE","DELETE","ERASE","KILL"], correct:1, explanation:"DELETE FROM tabla..."},
+            {id:135, category:"bd", type:"multiple", question:"Comando para insertar datos:", options:["ADD","INSERT INTO","PUT","NEW"], correct:1, explanation:"INSERT INTO tabla..."},
+            {id:136, category:"bd", type:"multiple", question:"Comando para modificar datos:", options:["CHANGE","UPDATE","MODIFY","SET"], correct:1, explanation:"UPDATE tabla SET..."},
+            {id:137, category:"web", type:"multiple", question:"¿Dónde se ejecuta el PHP?", options:["Navegador (Cliente).","Servidor.","Base de datos.","Pantalla."], correct:1, explanation:"Es un lenguaje backend."},
+            {id:138, category:"web", type:"multiple", question:"¿Qué es el Hosting?", options:["Nombre de la web.","Alojamiento web.","Diseño.","Programación."], correct:1, explanation:"Espacio en servidor donde se guardan los archivos."},
+            {id:139, category:"web", type:"multiple", question:"¿Qué es un Dominio?", options:["El dueño.","Nombre/dirección de la web (ej: google.com).","El servidor.","El código."], correct:1, explanation:"Dirección amigable para encontrar la web."},
+            {id:140, category:"web", type:"multiple", question:"Etiqueta de párrafo:", options:["<p>","<par>","<text>","<t>"], correct:0, explanation:"<p>Texto</p>"},
+
+            // --- 7. GESTIÓN Y EMPRENDIMIENTO (141-150) ---
+            {id:80, category:"gestion", type:"multiple", question:"Trello es para:", options:["Programar.","Gestión de proyectos (Kanban).","Diseñar.","Redes."], correct:1, explanation:"Organiza tareas en tableros."},
+            {id:81, category:"gestion", type:"multiple", question:"Git sirve para:", options:["Imágenes.","Control de versiones de código.","Videojuegos.","Chat."], correct:1, explanation:"Guarda el historial de cambios del código."},
+            {id:141, category:"emprendimiento", type:"multiple", question:"¿Qué es un Modelo Canvas?", options:["Un dibujo.","Herramienta para definir modelos de negocio.","Un tipo de pintura.","Un software."], correct:1, explanation:"Estructura la propuesta de valor, clientes, etc."},
+            {id:142, category:"emprendimiento", type:"multiple", question:"Pitch:", options:["Un deporte.","Presentación breve de un proyecto.","Un error.","Un programa."], correct:1, explanation:"Discurso corto para vender una idea."},
+            {id:143, category:"emprendimiento", type:"multiple", question:"FODA significa:", options:["Fortalezas, Oportunidades, Debilidades, Amenazas.","Formas, Ondas, Datos, Archivos.","Nada.","Un software."], correct:0, explanation:"Análisis estratégico."},
+            {id:144, category:"gestion", type:"multiple", question:"Metodología Ágil:", options:["Trabajo lento.","Desarrollo iterativo y flexible.","Sin planificación.","Solo para hardware."], correct:1, explanation:"Se adapta a cambios (ej: Scrum)."},
+            {id:145, category:"gestion", type:"multiple", question:"GitHub es:", options:["Una red social.","Plataforma para alojar repositorios Git.","Un juego.","Un antivirus."], correct:1, explanation:"Nube para código gestionado con Git."},
+            {id:146, category:"emprendimiento", type:"multiple", question:"Costos Fijos:", options:["Varían con la venta.","Se pagan siempre (ej: arriendo).","Son ganancia.","No existen."], correct:1, explanation:"Independientes de la producción."},
+            {id:147, category:"emprendimiento", type:"multiple", question:"Costos Variables:", options:["Son fijos.","Dependen de la producción/venta.","Sueldos base.","Arriendo."], correct:1, explanation:"Aumentan si produces más (ej: materia prima)."},
+            {id:148, category:"gestion", type:"multiple", question:"Carta Gantt:", options:["Un menú.","Gráfico para planificar cronograma de tareas.","Una carta postal.","Un contrato."], correct:1, explanation:"Visualiza el tiempo de las tareas."},
+            {id:149, category:"emprendimiento", type:"multiple", question:"Punto de Equilibrio:", options:["Donde te caes.","Ingresos = Costos (Ni ganas ni pierdes).","Ganancia máxima.","Pérdida total."], correct:1, explanation:"Umbral de rentabilidad."},
+            {id:150, category:"emprendimiento", type:"multiple", question:"Segmento de Clientes:", options:["A quién le vendes.","Tus empleados.","Tus proveedores.","Tus socios."], correct:0, explanation:"Grupo objetivo del negocio."},
+            
+            // --- RELLENO PARA LLEGAR A 150 (Variaciones de temas clave) ---
+            {id:151, category:"algoritmos", type:"tf", question:"Un diagrama de flujo debe tener un inicio y un fin.", options:["Verdadero","Falso"], correct:0, explanation:"Es fundamental delimitar el proceso."},
+            {id:152, category:"python", type:"case", case:"x = 10; y = '5'; z = x + y", question:"¿Qué pasa?", options:["z = 15","z = 105","Error de tipo","z = 5"], correct:2, explanation:"No se puede sumar int y str directamente."},
+            {id:153, category:"hardware", type:"tf", question:"El microprocesador se instala en el socket.", options:["Verdadero","Falso"], correct:0, explanation:"El socket es el zócalo específico de la placa."},
+            {id:154, category:"so", type:"tf", question:"Android es un SO para PC.", options:["Verdadero","Falso"], correct:1, explanation:"Es para dispositivos móviles."},
+            {id:155, category:"redes", type:"tf", question:"La IP 127.0.0.1 es localhost.", options:["Verdadero","Falso"], correct:0, explanation:"Se refiere al propio equipo."},
+            {id:156, category:"web", type:"tf", question:"HTML5 es la última versión.", options:["Verdadero","Falso"], correct:0, explanation:"Es el estándar actual."},
+            {id:157, category:"python", type:"multiple", question:"Librería para juegos en Python:", options:["pandas","pygame","numpy","request"], correct:1, explanation:"Pygame es popular para desarrollo 2D."},
+            {id:158, category:"python", type:"multiple", question:"Librería para IA:", options:["tensorflow","html","css","sql"], correct:0, explanation:"TensorFlow (Google) es para Machine Learning."},
+            {id:159, category:"bd", type:"tf", question:"Una tabla puede no tener clave primaria.", options:["Verdadero","Falso"], correct:0, explanation:"Es posible, pero no recomendado."},
+            {id:160, category:"gestion", type:"tf", question:"Scrum es una metodología ágil.", options:["Verdadero","Falso"], correct:0, explanation:"Es un marco de trabajo ágil popular."},
+            {id:161, category:"algoritmos", type:"case", case:"Necesitas repetir un proceso mientras el usuario no escriba 'salir'.", question:"Estructura:", options:["For","While","If","Array"], correct:1, explanation:"While respuesta != 'salir'."},
+            {id:162, category:"hardware", type:"multiple", question:"¿Qué es la BIOS?", options:["Software base de la placa.","Un juego.","El monitor.","El mouse."], correct:0, explanation:"Basic Input Output System."},
+            {id:163, category:"hardware", type:"multiple", question:"¿Qué es un periférico?", options:["Dispositivo externo conectado al PC.","La CPU.","La memoria.","El sistema."], correct:0, explanation:"Mouse, teclado, impresora, etc."},
+            {id:164, category:"so", type:"multiple", question:"Extensión .jpg:", options:["Video","Audio","Imagen","Texto"], correct:2, explanation:"Formato de imagen comprimida."},
+            {id:165, category:"so", type:"multiple", question:"Extensión .mp3:", options:["Video","Audio","Imagen","Texto"], correct:1, explanation:"Formato de audio."},
+            {id:166, category:"so", type:"multiple", question:"Extensión .mp4:", options:["Video","Audio","Imagen","Texto"], correct:0, explanation:"Formato de video."},
+            {id:167, category:"so", type:"multiple", question:"Extensión .txt:", options:["Video","Audio","Imagen","Texto plano"], correct:3, explanation:"Texto sin formato."},
+            {id:168, category:"redes", type:"multiple", question:"¿Qué es la Nube (Cloud)?", options:["Lluvia.","Servidores accesibles por internet.","Mi PC.","Un cable."], correct:1, explanation:"Recursos computacionales remotos."},
+            {id:169, category:"redes", type:"multiple", question:"Bluetooth es:", options:["Cableado.","Inalámbrico corto alcance.","Internet.","Satélite."], correct:1, explanation:"Para conectar dispositivos cercanos."},
+            {id:170, category:"algoritmos", type:"multiple", question:"Scratch usa:", options:["Código texto.","Bloques visuales.","Binario.","Tarjetas."], correct:1, explanation:"Programación por bloques para aprendizaje."},
+            {id:171, category:"algoritmos", type:"multiple", question:"Un sprite en Scratch es:", options:["Una bebida.","Un objeto/personaje.","Un fondo.","Un sonido."], correct:1, explanation:"Los elementos programables se llaman sprites."},
+            {id:172, category:"algoritmos", type:"multiple", question:"El escenario en Scratch es:", options:["Donde actúan los sprites.","El código.","El menú.","La web."], correct:0, explanation:"El fondo visual."},
+            {id:173, category:"algoritmos", type:"multiple", question:"Eje X en Scratch:", options:["Vertical","Horizontal","Profundidad","Tiempo"], correct:1, explanation:"Movimiento izquierda-derecha."},
+            {id:174, category:"algoritmos", type:"multiple", question:"Eje Y en Scratch:", options:["Vertical","Horizontal","Profundidad","Tiempo"], correct:0, explanation:"Movimiento arriba-abajo."},
+            {id:175, category:"hardware", type:"multiple", question:"1 KB (Kilobyte) son:", options:["1000 bytes","1024 bytes","8 bits","1 bit"], correct:1, explanation:"En informática es 1024 (2^10)."},
+            {id:176, category:"python", type:"multiple", question:"Variable booleana:", options:["Solo números.","Solo texto.","True o False.","Listas."], correct:2, explanation:"Lógica binaria."},
+            {id:177, category:"python", type:"multiple", question:"Operador 'and' en Python:", options:["&&","and","&","Y"], correct:1, explanation:"Python usa palabras en inglés."},
+            {id:178, category:"python", type:"multiple", question:"Operador 'or' en Python:", options:["||","or","|","O"], correct:1, explanation:"Python usa palabras en inglés."},
+            {id:179, category:"hardware", type:"multiple", question:"Tecla para borrar:", options:["Enter","Shift","Backspace","Ctrl"], correct:2, explanation:"Borra hacia atrás."},
+            {id:180, category:"hardware", type:"multiple", question:"Tecla para mayúsculas:", options:["Alt","Caps Lock (Bloq Mayús)","Tab","Esc"], correct:1, explanation:"Activa escritura en mayúsculas."}
+        ];
+
+        // VARIABLES DE ESTADO
+        // ... (El resto del código JS se mantiene igual que la versión anterior)
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let userAnswers = [];
+
+        // ELEMENTOS DOM
+        const introScreen = document.getElementById('intro-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const caseStudyBox = document.getElementById('case-study-box');
+        const progressBar = document.getElementById('progress-bar');
+        const questionCounter = document.getElementById('question-counter');
+        const scoreDisplay = document.getElementById('score-display');
+        const currentScoreSpan = document.getElementById('current-score');
+        
+        const feedbackArea = document.getElementById('feedback-area');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackText = document.getElementById('feedback-text');
+        const feedbackIcon = document.getElementById('feedback-icon');
+        const nextBtn = document.getElementById('next-btn');
+
+        // INICIALIZACIÓN
+        document.getElementById('total-questions-count').innerText = questionBank.length;
+
+        // FUNCIONES
+        function startQuiz(category) {
+            // Filtrar preguntas
+            if (category === 'all') {
+                currentQuestions = [...questionBank];
+            } else {
+                // Mapeo simple de categorías para los botones
+                if(category === 'algoritmos') currentQuestions = questionBank.filter(q => q.category === 'algoritmos');
+                else if(category === 'python') currentQuestions = questionBank.filter(q => q.category === 'python');
+                else if(category === 'hardware') currentQuestions = questionBank.filter(q => q.category === 'hardware' || q.category === 'so' || q.category === 'redes');
+                else currentQuestions = [...questionBank];
+            }
+
+            // Barajar preguntas
+            currentQuestions.sort(() => Math.random() - 0.5);
+
+            // Resetear estado
+            currentQuestionIndex = 0;
+            score = 0;
+            userAnswers = [];
+            currentScoreSpan.innerText = 0;
+
+            // Validar si hay preguntas
+            if (currentQuestions.length === 0) {
+                alert("No hay preguntas en esta categoría aún.");
+                return;
+            }
+
+            // Cambiar pantalla
+            introScreen.classList.add('hidden');
+            resultsScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            scoreDisplay.classList.remove('hidden');
+
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const q = currentQuestions[currentQuestionIndex];
+            
+            // Actualizar UI
+            questionCounter.innerText = `Pregunta ${currentQuestionIndex + 1} de ${currentQuestions.length}`;
+            progressBar.style.width = `${((currentQuestionIndex) / currentQuestions.length) * 100}%`;
+            document.getElementById('category-badge').innerText = q.category.toUpperCase();
+
+            // Texto Pregunta
+            questionText.innerText = q.question;
+
+            // Caso de Estudio
+            if (q.type === 'case' && q.case) {
+                caseStudyBox.innerText = q.case;
+                caseStudyBox.classList.remove('hidden');
+            } else {
+                caseStudyBox.classList.add('hidden');
+            }
+
+            // Opciones
+            optionsContainer.innerHTML = '';
+            feedbackArea.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn w-full text-left p-4 rounded-lg border border-gray-200 text-gray-700 hover:border-indigo-500 focus:outline-none";
+                btn.innerHTML = `<span class="font-bold mr-2">${String.fromCharCode(65 + index)}:</span> ${opt}`;
+                btn.onclick = () => checkAnswer(index, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex, btnElement) {
+            // Deshabilitar botones
+            const buttons = optionsContainer.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+
+            const q = currentQuestions[currentQuestionIndex];
+            const isCorrect = selectedIndex === q.correct;
+
+            // Estilos
+            if (isCorrect) {
+                btnElement.classList.add('correct-answer');
+                score += 10; // 10 puntos por correcta
+                currentScoreSpan.innerText = score;
+                showFeedback(true, q.explanation);
+            } else {
+                btnElement.classList.add('wrong-answer');
+                // Resaltar la correcta
+                buttons[q.correct].classList.add('correct-answer');
+                showFeedback(false, q.explanation);
+            }
+
+            userAnswers.push({
+                question: q.question,
+                isCorrect: isCorrect
+            });
+
+            nextBtn.classList.remove('hidden');
+        }
+
+        function showFeedback(isCorrect, explanation) {
+            feedbackArea.classList.remove('hidden');
+            if (isCorrect) {
+                feedbackArea.className = "p-4 mb-6 rounded-lg border bg-green-50 border-green-200 text-green-800 fade-in";
+                feedbackTitle.innerText = "¡Correcto!";
+                feedbackIcon.className = "fas fa-check-circle text-2xl mr-3 mt-1 text-green-600";
+            } else {
+                feedbackArea.className = "p-4 mb-6 rounded-lg border bg-red-50 border-red-200 text-red-800 fade-in";
+                feedbackTitle.innerText = "Incorrecto";
+                feedbackIcon.className = "fas fa-times-circle text-2xl mr-3 mt-1 text-red-600";
+            }
+            feedbackText.innerText = explanation || "No hay explicación adicional disponible.";
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < currentQuestions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            quizScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+
+            const correctCount = userAnswers.filter(a => a.isCorrect).length;
+            const incorrectCount = userAnswers.length - correctCount;
+
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-correct').innerText = correctCount;
+            document.getElementById('final-incorrect').innerText = incorrectCount;
+        }
+
+        function resetQuiz() {
+            if(confirm("¿Estás seguro de reiniciar el examen? Perderás tu progreso actual.")) {
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
